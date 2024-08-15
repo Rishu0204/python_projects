@@ -6,11 +6,13 @@ import time
 import datetime
 
 def check():
+    # List of URLs to scrape
     URLS = [
         'https://www.amazon.in/gp/aw/d/B0CQPHMWR3/?_encoding=UTF8&pd_rd_plhdr=t&aaxitk=6bab680f4c0692148df06644404f2dfd&hsa_cr_id=0&sr=1-3-undefined&ref_=sbx_be_dp_arbies_lsi4d_asin_2_bkgd&pd_rd_w=d4EdV&content-id=amzn1.sym.8b13584a-c7fa-402c-b0a3-ddf39b989f1f&pf_rd_p=8b13584a-c7fa-402c-b0a3-ddf39b989f1f&pf_rd_r=KD2AKQR2ZX1N6B2TE1WV&pd_rd_wg=rmw2y&pd_rd_r=ffc4158e-a65d-4ca2-a2dc-2b8b85e4e762&th=1',
         'https://www.amazon.in/gp/aw/d/B0CW3H8YKD/?_encoding=UTF8&pd_rd_plhdr=t&aaxitk=250db33181732dc212a7561c2574bbd3&hsa_cr_id=0&sr=1-2-undefined&ref_=sbx_be_dp_arbies_lsi4d_asin_1_title&pd_rd_w=5cHpp&content-id=amzn1.sym.8b13584a-c7fa-402c-b0a3-ddf39b989f1f&pf_rd_p=8b13584a-c7fa-402c-b0a3-ddf39b989f1f&pf_rd_r=17BPXGHY5VK8EBBP1Y69&pd_rd_wg=Lp2x0&pd_rd_r=e6daee4a-5d9a-4512-8ecf-794244926e4d'
     ]
 
+    # Headers to simulate a real browser visit
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
         "Accept-Encoding": "gzip, deflate, br, zstd",
@@ -21,32 +23,34 @@ def check():
         "Referer": "https://www.google.com/"
     }
 
+    # Dictionary to store product details
     products = {}
 
     for URL in URLS:
         try:
-            # Request the page
+            # Request the page content
             page = requests.get(URL, headers=headers)
-            page.raise_for_status()
-            print(page)  # Check for HTTP errors
+            page.raise_for_status()  # Ensure the request was successful
+            print(f"Successfully fetched URL: {URL}")
         except requests.RequestException as e:
+            # Handle errors related to the request
             print(f"Error fetching the URL {URL}: {e}")
             continue
         
         try:
-            # Parse the page content
+            # Parse the page content using BeautifulSoup
             soup = BeautifulSoup(page.content, 'html.parser')
             
-            # Extract title
+            # Extract the product title
             title = soup.find(id='titleSection').get_text().strip()
             
-            # Extract price section
+            # Extract the price section
             price = soup.find(id='corePriceDisplay_desktop_feature_div').get_text()
             
-            # Extract the actual price
+            # Extract the actual price from the price section
             actual_price = price.split('₹')[1].split()[0].replace(',', '')
             
-            # Extract the discount percentage
+            # Extract the discount percentage if available
             discount = None
             if '-%' in price:
                 discount = price.split('-')[1].split('%')[0].strip() + '%'
@@ -61,15 +65,17 @@ def check():
             # Store the product details in the dictionary
             products[title] = [actual_price, discount, date]
         except Exception as e:
+            # Handle errors related to parsing and data extraction
             print(f"Error processing the URL {URL}: {e}")
 
-    # Define the file path
+    # Define the path to the CSV file
     file_path = 'AmazonwebScraperData.csv'
     
-    # Check if the file exists and write data accordingly
+    # Check if the CSV file already exists
     file_exists = os.path.isfile(file_path)
     
     try:
+        # Open the CSV file in append mode
         with open(file_path, 'a+', newline='', encoding='UTF8') as f:
             writer = csv.writer(f)
             
@@ -78,10 +84,12 @@ def check():
                 header = ['Title', 'Price', 'Discount', 'Date']
                 writer.writerow(header)
             
-            # Write each product's data
+            # Write each product's data into the CSV file
             for title, details in products.items():
                 writer.writerow([title, details[0], details[1], details[2]])
+            print("Data successfully written to CSV file.")
     except IOError as e:
+        # Handle errors related to file operations
         print(f"Error writing to the CSV file: {e}")
 
 # Run the check function every 24 hours
